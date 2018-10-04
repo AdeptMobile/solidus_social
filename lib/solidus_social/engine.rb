@@ -40,7 +40,15 @@ module SolidusSocial
 
   def self.setup_key_for(provider, key, secret)
     Devise.setup do |config|
-      config.omniauth provider, key, secret, setup: true
+      client_opts = {
+        site: 'https://graph.facebook.com/v3.1',
+        authorize_url: "https://www.facebook.com/v3.1/dialog/oauth"
+      }
+
+      Rails.logger.info("[Spree Social] Loading #{provider.capitalize} adding #{(provider == :facebook ? client_opts : {})}")
+
+      config.omniauth provider, key, secret, setup: true,
+          client_options: (provider == :facebook ? client_opts : {})
     end
   end
 end
