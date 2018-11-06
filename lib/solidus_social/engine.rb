@@ -4,7 +4,8 @@ module SolidusSocial
     %w(Twitter twitter),
     %w(Github github),
     %w(Google google_oauth2),
-    %w(Amazon amazon)
+    %w(Amazon amazon),
+    %w(IDme idme)
   ]
 
   class Engine < Rails::Engine
