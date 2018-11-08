@@ -18,6 +18,7 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
   def omniauth_callback
     if request.env['omniauth.error'].present?
+      Rails.logger.warn("Error: " + auth_hash)
       flash[:error] = I18n.t('devise.omniauth_callbacks.failure', kind: auth_hash['provider'], reason: Spree.t(:user_was_not_valid))
       redirect_back_or_default(root_url)
       return
@@ -27,11 +28,17 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     if authentication.present? and authentication.try(:user).present?
       flash[:notice] = I18n.t('devise.omniauth_callbacks.success', kind: auth_hash['provider'])
+
+      return idme_path if auth_hash['provider'] == 'idme'
+
       sign_in_and_redirect :spree_user, authentication.user
     elsif spree_current_user
       spree_current_user.apply_omniauth(auth_hash)
       spree_current_user.save!
       flash[:notice] = I18n.t('devise.sessions.signed_in')
+
+      return idme_path if auth_hash['provider'] == 'idme'
+
       redirect_back_or_default(account_url)
     else
       user = Spree::User.find_by_email(auth_hash['info']['email']) || Spree::User.new
@@ -42,6 +49,9 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
       else
         session[:omniauth] = auth_hash.except('extra')
         flash[:notice] = Spree.t(:one_more_step, kind: auth_hash['provider'].capitalize)
+
+        return idme_path if auth_hash['provider'] == 'idme'
+
         redirect_to new_spree_user_registration_url
         return
       end
@@ -52,6 +62,23 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
       current_order.associate_user!(user)
       session[:guest_token] = nil
     end
+  end
+
+  def idme
+    order = Spree::Order.find_by(guest_token: cookies.signed[:guest_token])
+    return omniauth_callback if order.nil?
+
+    order.is_military  = auth_hash.dig("info", "affiliation") == "Service Member"
+    order.is_responder = auth_hash.dig("info", "affiliation") == "EMT"
+    order.save
+
+    flash[:notice] = "ID.me authentication successful! Promotion will be applied as you checkout."
+
+    redirect_to cart_path
+  end
+
+  def idme_path
+    redirect_to cart_path
   end
 
   def failure
