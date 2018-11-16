@@ -68,7 +68,7 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     flash[:notice] = "ID.me authentication successful!"
 
-    redirect_back_or_default(account_url)
+    omniauth_callback
   end
 
   def failure
