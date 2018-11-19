@@ -64,11 +64,12 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
     order.is_military  = auth_hash.dig("info", "affiliation") == "Service Member"
     order.is_responder = auth_hash.dig("info", "affiliation") == "EMT"
-    order.save
+    order.state = 'delivery'
+    order.next
 
     flash[:notice] = "ID.me authentication successful!"
 
-    omniauth_callback
+    redirect_to checkout_state_path("payment")
   end
 
   def failure
